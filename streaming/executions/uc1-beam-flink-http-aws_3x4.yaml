@@ -1,0 +1,50 @@
+apiVersion: theodolite.com/v1
+kind: execution
+metadata:
+  name: uc1-beam-flink-http-aws-3x4
+spec:
+  benchmark: "uc1-beam-flink-http-aws"
+  load:
+    loadType: "NumSensors"
+    loadValues: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+  resources:
+    resourceType: "Instances"
+    resourceValues: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  slos:
+    - sloType: "lag trend ratio"
+      prometheusUrl: "http://prometheus-operated:9090"
+      offset: 0
+      properties:
+        ratio: 0.025
+        externalSloUrl: "http://localhost:80/evaluate-slope"
+        consumerGroup: theodolite-uc1-application
+        warmup: 60 # in seconds
+  execution:
+    duration: 300 # in seconds
+    loadGenerationDelay: 30
+    repetitions: 1
+    strategy: "LinearSearch"
+    restrictions:
+      - "LowerBound"
+  configOverrides:
+  - patcher:
+      type: "EnvVarPatcher"
+      resource: "terraform-deployment-aws.yaml"
+      properties:
+        container: "terraform"
+        variableName: "HTTP_URL"
+    value: "http://internal-ae1b7f54ef4434e10bc9daa0e4ef254d-1243454842.eu-central-1.elb.amazonaws.com:8080"
+  - patcher:
+      type: "EnvVarPatcher"
+      resource: "terraform-deployment-aws.yaml"
+      properties:
+        container: "terraform"
+        variableName: "AWS_SUBNET_ID"
+    value: "subnet-0668fbd516b3cd875"
+  - patcher:
+      type: "EnvVarPatcher"
+      resource: "jobmanager-deployment.yaml"
+      properties:
+        container: "jobmanager"
+        variableName: "SINK_TYPE"
+    value: "dynamodb"

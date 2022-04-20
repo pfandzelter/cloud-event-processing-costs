@@ -1,0 +1,71 @@
+cp-helm-charts:
+  enabled: false
+
+strimzi:
+  enabled: false
+  zookeeper:
+    zooEntrance:
+      enabled: false
+      zookeeperClient:
+        enabled: false
+
+operator:
+  resultsVolume:
+    persistent:
+      enabled: true
+      existingClaim: theodolite-results-persistent
+  theodoliteBenchmarks:
+    resourceConfigMaps:
+      uc1LoadGenerator: false
+      uc1Kstreams: false
+      uc1Flink: false
+      uc1BeamFlink: false
+      uc1BeamSamza: false
+      uc2LoadGenerator: false
+      uc2Kstreams: false
+      uc2Flink: false
+      uc2BeamFlink: false
+      uc2BeamSamza: false
+      uc3LoadGenerator: false
+      uc3Kstreams: false
+      uc3Flink: false
+      uc3BeamFlink: false
+      uc3BeamSamza: false
+      uc4LoadGenerator: false
+      uc4Kstreams: false
+      uc4Flink: false
+      uc4BeamFlink: false
+      uc4BeamSamza: false
+    benchmarks:
+      uc1Kstreams: false
+      uc1Flink: false
+      uc1BeamFlink: false
+      uc1BeamSamza: false
+      uc2Kstreams: false
+      uc2Flink: false
+      uc2BeamFlink: false
+      uc2BeamSamza: false
+      uc3Kstreams: false
+      uc3Flink: false
+      uc3BeamFlink: false
+      uc3BeamSamza: false
+      uc4Kstreams: false
+      uc4Flink: false
+      uc4BeamFlink: false
+      uc4BeamSamza: false
+
+
+rbac:
+  additionalRules:
+  - apiGroups:
+    - pubsub.cnrm.cloud.google.com
+    resources:
+    - pubsubtopics
+    - pubsubsubscriptions
+    verbs:
+    - delete
+    - list
+    - get
+    - create
+    - update
+    - watch

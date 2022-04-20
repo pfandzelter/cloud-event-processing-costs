@@ -1,0 +1,75 @@
+apiVersion: theodolite.com/v1
+kind: benchmark
+metadata:
+  name: uc3-beam-flink-pubsub
+spec:
+  sut:
+    resources:
+      - configMap:
+          name: "pubsub"
+          files:
+          - "input-topic.yaml"
+          - "input-topic-subscription.yaml"
+      - configMap:
+          name: "uc3-beam-flink-pubsub"
+          files:
+          - "flink-configuration-configmap.yaml"
+          - "taskmanager-deployment.yaml"
+          - "taskmanager-service.yaml"
+          - "service-monitor.yaml"
+          - "jobmanager-service.yaml"
+          - "jobmanager-deployment.yaml"
+          # - "jobmanager-rest-service.yaml"
+  loadGenerator:
+    beforeActions:
+      - selector:
+          pod:
+            matchLabels:
+              app: gcloud
+        exec:
+          command:
+          - "bash"
+          - "-c"
+          - |
+            until test $(gcloud pubsub subscriptions list --format="value(name)" | grep "^projects/$GCP_PROJECT/subscriptions/input-subscription$" | wc -l) -eq 1
+            do
+              echo "Wait for subscription to be available..."
+              sleep 5s
+            done
+            gcloud pubsub subscriptions seek projects/$GCP_PROJECT/subscriptions/input-subscription --time=$(date +%Y-%m-%dT%H:%M:%S)
+            sleep 60s
+          timeoutSeconds: 180
+    afterActions:
+      - selector:
+          pod:
+            matchLabels:
+              app: gcloud
+        exec:
+          command:
+          - "bash"
+          - "-c"
+          - |
+            gcloud pubsub subscriptions seek projects/$GCP_PROJECT/subscriptions/input-subscription --time=$(date +%Y-%m-%dT%H:%M:%S)
+            sleep 60s
+          timeoutSeconds: 180
+    resources:
+      - configMap:
+          name: "terraform-load-generator-gcp"
+  resourceTypes:
+    - typeName: "Instances"
+      patchers:
+        - type: "ReplicaPatcher"
+          resource: "taskmanager-deployment.yaml"
+        - type: "EnvVarPatcher"
+          resource: "jobmanager-deployment.yaml"
+          properties:
+            container: "jobmanager"
+            variableName: "PARALLELISM"
+  loadTypes:
+    - typeName: "NumSensors"
+      patchers:
+        - type: "EnvVarPatcher"
+          resource: "terraform-deployment-gcp.yaml"
+          properties:
+            container: "terraform"
+            variableName: "LOAD_INTENSITY"

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: theodolite-http-bridge
+  labels:
+    app: theodolite-http-bridge
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  type: ClusterIP
+  #clusterIP: None
+  selector:
+    app: theodolite-http-bridge
+  ports:
+    - name: http-endpoint
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

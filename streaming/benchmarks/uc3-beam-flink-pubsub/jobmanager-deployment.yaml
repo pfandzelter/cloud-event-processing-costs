@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flink-jobmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flink
+      component: jobmanager
+  template:
+    metadata:
+      labels:
+        app: flink
+        component: jobmanager
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: jobmanager
+          image: ghcr.io/cau-se/theodolite-uc3-beam-flink:firestore-test-latest
+          imagePullPolicy: Always
+          args: ["standalone-job", "--job-classname", "rocks.theodolite.benchmarks.uc3.beam.flink.Uc3BeamFlink",
+                  "--parallelism=$(PARALLELISM)",
+                  "--checkpointingInterval=$(CHECKPOINTING_INTERVAL_MS)",
+                  "--stateBackend=rocksdb",
+                  "--stateBackendStoragePath=file:///tmp/flink-state",
+                  "--disableMetrics=true",
+                  "--fasterCopy"]
+          # optional arguments: ["--job-id", "<job id>", "--fromSavepoint", "/path/to/savepoint", "--allowNonRestoredState"]
+          env:
+            - name: PARALLELISM
+              value: "1"
+            - name: CHECKPOINTING_INTERVAL_MS
+              value: "30000"
+            # - name: MAX_POLL_RECORDS
+            #   value: "100"
+            - name: "SOURCE_TYPE"
+              value: "pubsub"
+            - name: SOURCE_PUBSUB_PROJECT
+              valueFrom:
+                configMapKeyRef:
+                  name: gcp-config
+                  key: project
+            - name: "SOURCE_PUBSUB_TOPIC"
+              value: "input"
+            - name: "SOURCE_PUBSUB_SUBSCRIPTION"
+              value: "input-subscription"
+            - name: "AGGREGATION_DURATION_SECONDS"
+              value: "30"
+            - name: "AGGREGATION_ADVANCE_SECONDS"
+              value: "3"
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/key.json
+            - name: JOB_MANAGER_RPC_ADDRESS
+              value: "flink-jobmanager"
+            - name: FLINK_PROPERTIES
+              value: |+
+                blob.server.port: 6124
+                jobmanager.rpc.port: 6123
+                taskmanager.rpc.port: 6122
+                queryable-state.proxy.ports: 6125
+                jobmanager.memory.process.size: 3Gb
+                taskmanager.memory.process.size: 3Gb
+                parallelism.default: 1 #TODO
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 100m
+            limits:
+              memory: 4Gi
+              cpu: 1000m
+          ports:
+            - containerPort: 6123
+              name: rpc
+            - containerPort: 6124
+              name: blob-server
+            - containerPort: 8081
+              name: webui
+            - containerPort: 9249
+              name: metrics
+          livenessProbe:
+            tcpSocket:
+              port: 6123
+            initialDelaySeconds: 30
+            periodSeconds: 60
+          securityContext:
+            runAsUser: 9999  # refers to user _flink_ from official flink image, change if necessary
+          volumeMounts:
+          - name: google-cloud-key
+            mountPath: /var/secrets/google
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: gcp-key

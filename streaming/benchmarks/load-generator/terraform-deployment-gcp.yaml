@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: terraform-uc1-load-generator
+spec:
+  selector:
+    matchLabels:
+      app: terraform-uc1-load-generator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: terraform-uc1-load-generator
+    spec:
+      terminationGracePeriodSeconds: 180
+      containers:
+        - name: terraform
+          image: hashicorp/terraform:1.1.7
+          resources:
+            requests:
+              memory: 100Mi
+              cpu: 100m
+            limits:
+              memory: 200Mi
+              cpu: 1000m
+          command: ["sh", "-c", "apk add bash && bash terraform/run.sh"]
+          env:
+            - name: GITHUB_REPO
+              value: "pfandzelter/cloud-event-processing-costs"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: github-token
+                  key: GITHUB_PAT
+            - name: CLOUD
+              value: gcp
+            - name: GCP_PROJECT
+              valueFrom:
+                configMapKeyRef:
+                  name: gcp-config
+                  key: project
+            - name: TARGET
+              value: http # Can be set to "pubsub" in execution
+              # Must be set, e.g., via execution
+              # - name: HTTP_URL
+              #   value: http://<load-balancer-ip-here>:8080
+            - name: PUBSUB_INPUT_TOPIC
+              value: input
+            - name: LOAD_INTENSITY
+              value: "100"
+            - name: MAX_INSTANCE_LOAD
+              value: "7000"
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/key.json
+          volumeMounts:
+            - name: google-cloud-key
+              mountPath: /var/secrets/google
+            - name: terraform-run-script
+              mountPath: /terraform
+      volumes:
+        - name: google-cloud-key
+          secret:
+            secretName: gcp-key
+        - name: terraform-run-script
+          configMap:
+            name: terraform-run-script
+            defaultMode: 0777

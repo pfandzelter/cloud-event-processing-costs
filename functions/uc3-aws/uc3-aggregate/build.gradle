@@ -1,0 +1,31 @@
+apply plugin: 'java'
+sourceCompatibility = '1.11'
+targetCompatibility = '1.11'
+
+repositories {
+  mavenCentral()
+//   maven {
+//     url "https://oss.sonatype.org/content/repositories/snapshots/"
+//   }
+}
+
+task buildZip(type: Zip) {
+    from compileJava
+    from processResources
+    into('lib') {
+        from configurations.runtimeClasspath
+    }
+}
+
+dependencies {
+  implementation 'com.amazonaws:aws-lambda-java-core:1.2.1'
+//   implementation('org.industrial-devops:titan-ccp-common:0.1.0-SNAPSHOT') { changing = true}
+
+  // https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk
+//   implementation 'com.amazonaws:aws-java-sdk:1.12.181'
+// https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-dynamodb
+implementation 'com.amazonaws:aws-java-sdk-dynamodb:1.12.181'
+
+  implementation 'com.amazonaws:aws-lambda-java-events:3.11.0'
+  implementation 'com.google.code.gson:gson:2.9.0'
+}

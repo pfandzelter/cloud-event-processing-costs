@@ -1,0 +1,46 @@
+apiVersion: theodolite.com/v1
+kind: benchmark
+metadata:
+  name: uc3-beam-flink-http
+spec:
+  sut:
+    resources:
+      - configMap:
+          name: "http-bridge"
+          files:
+          - "input-topic.yaml"
+          - "http-bridge-deployment.yaml"
+          - "http-bridge-service.yaml"
+          # - "http-bridge-service-monitor.yaml"
+      - configMap:
+          name: "uc3-beam-flink-http"
+          files:
+          - "flink-configuration-configmap.yaml"
+          - "taskmanager-deployment.yaml"
+          - "taskmanager-service.yaml"
+          - "service-monitor.yaml"
+          - "jobmanager-service.yaml"
+          - "jobmanager-deployment.yaml"
+          # - "jobmanager-rest-service.yaml"
+  loadGenerator:
+    resources:
+      - configMap:
+          name: "terraform-load-generator-gcp"
+  resourceTypes:
+    - typeName: "Instances"
+      patchers:
+        - type: "ReplicaPatcher"
+          resource: "taskmanager-deployment.yaml"
+        - type: "EnvVarPatcher"
+          resource: "jobmanager-deployment.yaml"
+          properties:
+            container: "jobmanager"
+            variableName: "PARALLELISM"
+  loadTypes:
+    - typeName: "NumSensors"
+      patchers:
+        - type: "EnvVarPatcher"
+          resource: "terraform-deployment-gcp.yaml"
+          properties:
+            container: "terraform"
+            variableName: "LOAD_INTENSITY"

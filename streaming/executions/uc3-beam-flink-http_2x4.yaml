@@ -1,0 +1,36 @@
+apiVersion: theodolite.com/v1
+kind: execution
+metadata:
+  name: uc3-beam-flink-http-2x4
+spec:
+  benchmark: "uc3-beam-flink-http"
+  load:
+    loadType: "NumSensors"
+    loadValues: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+  resources:
+    resourceType: "Instances"
+    resourceValues: [1, 2, 3]
+  slos:
+    - sloType: "lag trend ratio"
+      prometheusUrl: "http://prometheus-operated:9090"
+      offset: 0
+      properties:
+        ratio: 0.025
+        externalSloUrl: "http://localhost:80/evaluate-slope"
+        consumerGroup: theodolite-uc3-application
+        warmup: 60 # in seconds
+  execution:
+    duration: 300 # in seconds
+    loadGenerationDelay: 30
+    repetitions: 1
+    strategy: "LinearSearch"
+    restrictions:
+      - "LowerBound"
+  configOverrides:
+  - patcher:
+      type: "EnvVarPatcher"
+      resource: "terraform-deployment-gcp.yaml"
+      properties:
+        container: "terraform"
+        variableName: "HTTP_URL"
+    value: "http://10.156.0.27:8080"

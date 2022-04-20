@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flink-jobmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flink
+      component: jobmanager
+  template:
+    metadata:
+      labels:
+        app: flink
+        component: jobmanager
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: jobmanager
+          image: ghcr.io/cau-se/theodolite-uc1-beam-flink:firestore-test-latest
+          imagePullPolicy: Always
+          args: ["standalone-job", "--job-classname", "rocks.theodolite.benchmarks.uc1.beam.flink.Uc1BeamFlink",
+                  "--parallelism=$(PARALLELISM)",
+                  "--checkpointingInterval=$(CHECKPOINTING_INTERVAL_MS)",
+                  "--stateBackend=rocksdb",
+                  "--stateBackendStoragePath=file:///tmp/flink-state",
+                  "--disableMetrics=true",
+                  "--fasterCopy"]
+          # optional arguments: ["--job-id", "<job id>", "--fromSavepoint", "/path/to/savepoint", "--allowNonRestoredState"]
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "theodolite-kafka-kafka-bootstrap:9092"
+            - name: SCHEMA_REGISTRY_URL
+              value: "http://theodolite-cp-schema-registry:8081"
+            - name: PARALLELISM
+              value: "1"
+            - name: CHECKPOINTING_INTERVAL_MS
+              value: "30000"
+            # - name: MAX_POLL_RECORDS
+            #   value: "100"
+            - name: "SINK_TYPE"
+              # value: "dynamodb"
+              value: "firestore"
+            - name: "SINK_FIRESTORE_COLLECTION"
+              value: "activepowerrecords"
+            - name: "SINK_FIRESTORE_HINT_MAX_WORKERS"
+              value: "1"
+            - name: "SINK_DYNAMODB_REGION"
+              value: "eu-central-1"
+            - name: "SINK_DYNAMODB_TABLE"
+              value: "activepowerrecords"
+            - name: SINK_DYNAMODB_AWS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-dynamodb-credentials
+                  key: AWS_ACCESS_KEY
+            - name: SINK_DYNAMODB_AWS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-dynamodb-credentials
+                  key: AWS_SECRET_KEY
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/key.json
+            - name: JOB_MANAGER_RPC_ADDRESS
+              value: "flink-jobmanager"
+            - name: FLINK_PROPERTIES
+              value: |+
+                blob.server.port: 6124
+                jobmanager.rpc.port: 6123
+                taskmanager.rpc.port: 6122
+                queryable-state.proxy.ports: 6125
+                jobmanager.memory.process.size: 3Gb
+                taskmanager.memory.process.size: 3Gb
+                parallelism.default: 1 #TODO
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 100m
+            limits:
+              memory: 4Gi
+              cpu: 1000m
+          ports:
+            - containerPort: 6123
+              name: rpc
+            - containerPort: 6124
+              name: blob-server
+            - containerPort: 8081
+              name: webui
+            - containerPort: 9249
+              name: metrics
+          livenessProbe:
+            tcpSocket:
+              port: 6123
+            initialDelaySeconds: 30
+            periodSeconds: 60
+          securityContext:
+            runAsUser: 9999  # refers to user _flink_ from official flink image, change if necessary
+          volumeMounts:
+          - name: google-cloud-key
+            mountPath: /var/secrets/google
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: gcp-key

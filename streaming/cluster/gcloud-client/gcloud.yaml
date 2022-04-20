@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gcloud
+spec:
+  selector:
+    matchLabels:
+      app: gcloud
+  template:
+    metadata:
+      labels:
+        app: gcloud
+    spec:
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: gcp-key
+      containers:
+      - name: gcloud
+        image: gcr.io/google.com/cloudsdktool/google-cloud-cli:latest
+        command:
+          - "bash"
+          - "-c"
+          - "gcloud config set auth/credential_file_override /var/secrets/google/key.json && sleep infinity"
+        env:
+        - name: GCP_PROJECT
+          valueFrom:
+            configMapKeyRef:
+              name: gcp-config
+              key: project
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/secrets/google/key.json
+        volumeMounts:
+        - name: google-cloud-key
+          mountPath: /var/secrets/google

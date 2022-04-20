@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: theodolite-http-bridge
+spec:
+  selector:
+    matchLabels:
+      app: theodolite-http-bridge
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: theodolite-http-bridge
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: http-bridge
+          image: ghcr.io/cau-se/theodolite-http-bridge:latest
+          ports:
+            - containerPort: 8080
+              name: http-endpoint
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "theodolite-kafka-kafka-bootstrap:9092"
+            - name: SCHEMA_REGISTRY_URL
+              value: "http://theodolite-cp-schema-registry:8081"
+          resources:
+            limits:
+              memory: 500Mi
+              cpu: 950m

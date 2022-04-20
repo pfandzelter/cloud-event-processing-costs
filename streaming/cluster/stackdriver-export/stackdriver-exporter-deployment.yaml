@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stackdriver-exporter
+spec:
+  selector:
+    matchLabels:
+      app: stackdriver-exporter
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: stackdriver-exporter
+        # app.kubernetes.io/name: kafka-exporter # uncomment to force restart
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: stackdriver-exporter
+          image: prometheuscommunity/stackdriver-exporter:v0.12.0
+          resources:
+            requests:
+                memory: 10Mi
+                cpu: 10m
+            limits:
+              memory: 50Mi
+              cpu: 100m
+          args:
+          - "--google.project-id"
+          - "$(GCP_PROJECT)"
+          - "--monitoring.metrics-type-prefixes"
+          - "pubsub.googleapis.com/"
+          - "--monitoring.metrics-interval"
+          - "60s"
+          env:
+          - name: GCP_PROJECT
+            valueFrom:
+              configMapKeyRef:
+                name: gcp-config
+                key: project
+          - name: GOOGLE_APPLICATION_CREDENTIALS
+            value: /var/secrets/google/key.json
+          volumeMounts:
+          - name: google-cloud-key
+            mountPath: /var/secrets/google
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: gcp-key

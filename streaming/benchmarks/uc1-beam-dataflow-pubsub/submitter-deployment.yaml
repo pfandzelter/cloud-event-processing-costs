@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: theodolite-uc1-beam-dataflow-submitter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: theodolite-uc1-beam-dataflow
+      component: submitter
+  template:
+    metadata:
+      labels:
+        app: theodolite-uc1-beam-dataflow
+        component: submitter
+    spec:
+      terminationGracePeriodSeconds: 300
+      containers:
+        - name: dataflow-submitter
+          image: ghcr.io/cau-se/theodolite-uc1-beam-dataflow:firestore-test-latest
+          imagePullPolicy: Always
+          args:
+           - "/uc1-beam-dataflow/bin/uc1-beam-dataflow"
+           - "--region=europe-west3"
+           - "--streaming=true"
+           - "--project=$(GCP_PROJECT)"
+           - "--workerMachineType=$(WORKER_MACHINE_TYPE)"
+           - "--numWorkers=$(NUM_WORKERS)"
+           - "--autoscalingAlgorithm=NONE"
+          env:
+            - name: "NUM_WORKERS"
+              value: "1"
+            - name: "WORKER_MACHINE_TYPE"
+              value: "e2-standard-4"
+            - name: GCP_PROJECT
+              valueFrom:
+                configMapKeyRef:
+                  name: gcp-config
+                  key: project
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/key.json
+            - name: SOURCE_PUBSUB_PROJECT
+              valueFrom:
+                configMapKeyRef:
+                  name: gcp-config
+                  key: project
+            - name: "SOURCE_PUBSUB_SUBSCRIPTION"
+              value: "input-subscription"
+            - name: "SOURCE_TYPE"
+              value: "pubsub"
+            - name: "SINK_TYPE"
+              value: "firestore"
+            - name: "SINK_FIRESTORE_COLLECTION"
+              value: "activepowerrecords"
+            - name: "SINK_FIRESTORE_HINT_MAX_WORKERS"
+              value: "1"
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: 500m
+          volumeMounts:
+          - name: google-cloud-key
+            mountPath: /var/secrets/google
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: gcp-key

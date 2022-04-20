@@ -1,0 +1,42 @@
+apiVersion: theodolite.com/v1
+kind: benchmark
+metadata:
+  name: uc1-beam-samza-http
+spec:
+  sut:
+    resources:
+      - configMap:
+          name: "http-bridge"
+          files:
+          - "input-topic.yaml"
+          - "http-bridge-deployment.yaml"
+          - "http-bridge-service.yaml"
+          # - "http-bridge-service-monitor.yaml"
+      - configMap:
+          name: "uc1-beam-samza-http"
+    afterActions:
+      - selector: # delete zookeeper nodes to reset zookeeper
+          pod:
+            matchLabels:
+              app: "zookeeper-client"
+          container: "zookeeper-client"
+        exec:
+          command: ["bash", "-c", "bin/zkCli.sh -server $ZOOKEEPER_SERVER deleteall /app-theodolite-uc1-application-1"]
+          timeoutSeconds: 60
+  loadGenerator:
+    resources:
+      - configMap:
+          name: "terraform-load-generator-gcp"
+  resourceTypes:
+    - typeName: "Instances"
+      patchers:
+        - type: "ReplicaPatcher"
+          resource: "uc1-beam-samza-deployment.yaml"
+  loadTypes:
+    - typeName: "NumSensors"
+      patchers:
+        - type: "EnvVarPatcher"
+          resource: "terraform-deployment-gcp.yaml"
+          properties:
+            container: "terraform"
+            variableName: "LOAD_INTENSITY"

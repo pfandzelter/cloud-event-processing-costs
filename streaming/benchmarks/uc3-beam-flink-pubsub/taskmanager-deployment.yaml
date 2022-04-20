@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flink-taskmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flink
+      component: taskmanager
+  template:
+    metadata:
+      labels:
+        app: flink
+        component: taskmanager
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: taskmanager
+          image: ghcr.io/cau-se/theodolite-uc3-beam-flink:firestore-test-latest
+          imagePullPolicy: Always
+          args: ["taskmanager"]
+          env:
+            - name: JOB_MANAGER_RPC_ADDRESS
+              value: "flink-jobmanager"
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/key.json
+            # - name: TASK_MANAGER_NUMBER_OF_TASK_SLOTS
+            #   value: "1" #TODO
+          resources:
+            limits:
+              memory: 3Gi
+              cpu: 950m
+          ports:
+            - containerPort: 6122
+              name: rpc
+            - containerPort: 6125
+              name: query-state
+            - containerPort: 9249
+              name: metrics
+          # livenessProbe:
+          #   tcpSocket:
+          #     port: 6122
+          #   initialDelaySeconds: 30
+          #   periodSeconds: 60
+          securityContext:
+            runAsUser: 9999  # refers to user _flink_ from official flink image, change if necessary
+          volumeMounts:
+          - name: google-cloud-key
+            mountPath: /var/secrets/google
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: gcp-key
