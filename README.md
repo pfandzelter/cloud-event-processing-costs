@@ -9,7 +9,7 @@ If you use this software in a publication, please cite it as:
 
 ### Text
 
-T. Pfandzelter, S. Henning, T. Schirmer, W. Hasselbring, D. Bermbach, **Streaming vs. Functions: A Cost Perspective on Cloud Event Processing**, Proceedings of the 10th IEEE International Conference on Cloud Engineering (IC2E 2022), Pacific Grove, CA, USA, 2022.
+T. Pfandzelter, S. Henning, T. Schirmer, W. Hasselbring, D. Bermbach, **Streaming vs. Functions: A Cost Perspective on Cloud Event Processing**, Proceedings of the 10th IEEE International Conference on Cloud Engineering (IC2E 2022), Pacific Grove, CA, USA, 2022. DOI: [10.1109/IC2E55432.2022.00015](https://doi.org/10.1109/IC2E55432.2022.00015). arXiv: [2204.11509 [cs.DC]](https://arxiv.org/abs/2204.11509).
 
 ### BibTeX
 
@@ -19,6 +19,8 @@ T. Pfandzelter, S. Henning, T. Schirmer, W. Hasselbring, D. Bermbach, **Streamin
     booktitle = "Proceedings of the 10th IEEE International Conference on Cloud Engineering (IC2E 2022)",
     author = "Pfandzelter, Tobias and Henning, S{\"o}ren and Schirmer, Trever and Hasselbring, Wilhelm and Bermbach, David",
     year = 2022,
+    pages = "67-78",
+    doi = "10.1109/IC2E55432.2022.00015"
 }
 ```
 
